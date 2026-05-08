@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WeatherDash — {{ location_name }}</title>
+  <meta name="description" content="Local weather and infrastructure dashboard for {{ location_name }}">
+  <meta name="theme-color" content="#060911">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Top Bar ────────────────────────────────────────────────────────── -->
+  <header id="topbar">
+    <div class="topbar-brand">
+      <span class="brand-icon">🌦</span>
+      <div>
+        <div class="brand-name">WeatherDash</div>
+        <div class="brand-loc">{{ location_name }}</div>
+      </div>
+    </div>
+
+    <div class="topbar-conditions">
+      <div class="cond-item">
+        <span class="cond-label">Temperature</span>
+        <span class="cond-value big" id="tb-temp">--</span>
+      </div>
+      <div class="cond-item">
+        <span class="cond-label">Conditions</span>
+        <span class="cond-value" id="tb-desc" style="font-size:0.85rem">--</span>
+      </div>
+      <div class="cond-item">
+        <span class="cond-label">Wind</span>
+        <span class="cond-value" id="tb-wind">--</span>
+      </div>
+      <div class="cond-item">
+        <span class="cond-label">Humidity</span>
+        <span class="cond-value" id="tb-humidity">--</span>
+      </div>
+      <div class="cond-item">
+        <span class="cond-label">Pressure</span>
+        <span class="cond-value" id="tb-pressure">--</span>
+      </div>
+      <div class="cond-item">
+        <span class="cond-label">Visibility</span>
+        <span class="cond-value" id="tb-vis">--</span>
+      </div>
+      <div class="cond-item" id="tb-aqi-wrap">
+        <span class="cond-label">AQI</span>
+        <span class="cond-value" id="tb-aqi">--</span>
+      </div>
+    </div>
+
+    <div class="topbar-time">
+      <div class="time-display" id="clock">--:--:--</div>
+      <div class="date-display" id="dateline">---</div>
+    </div>
+  </header>
+
+  <!-- ── Alert Banner ───────────────────────────────────────────────────── -->
+  <div id="alert-banner" role="alert">
+    <div class="alert-scroller" id="alert-scroller">
+      <!-- Populated by JS -->
+    </div>
+  </div>
+
+  <!-- ── Main Grid ──────────────────────────────────────────────────────── -->
+  <main id="main-grid">
+
+    <!-- LEFT COLUMN ─────────────────────────────────────────────────────── -->
+    <div id="col-left">
+
+      <!-- Radar -->
+      <div class="card" id="radar-card" style="flex:1">
+        <div class="card-header">
+          <span class="card-title"><span class="icon">🌀</span> Live Radar</span>
+          <div class="card-refresh">
+            <span class="refresh-dot" id="radar-dot"></span>
+            <span id="radar-updated">--</span>
+          </div>
+        </div>
+        <div class="card-body" style="padding:0;position:relative;flex:1">
+          <div id="radar-map"></div>
+          <div class="radar-controls">
+            <button class="radar-btn active" onclick="setRadarLayer('rain')" id="btn-rain">🌧 Rain</button>
+            <button class="radar-btn" onclick="setRadarLayer('snow')" id="btn-snow">❄ Snow</button>
+            <button class="radar-btn" onclick="setRadarLayer('cloud')" id="btn-cloud">☁ Clouds</button>
+            <button class="radar-btn" onclick="toggleLightningLayer()" id="btn-lightning">⚡ Lightning</button>
+          </div>
+          <div class="radar-timestamp" id="radar-ts">Loading…</div>
+        </div>
+      </div>
+
+      <!-- Conditions row (wind + sun + precip) -->
+      <div class="conditions-row">
+
+        <!-- Wind -->
+        <div class="card" id="wind-card">
+          <div class="card-header">
+            <span class="card-title"><span class="icon">💨</span> Wind</span>
+            <div class="card-refresh">
+              <span class="refresh-dot" id="wind-dot"></span>
+              <span id="wind-updated">--</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="wind-display">
+              <div class="compass">
+                <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" id="compass-svg">
+                  <!-- Ring -->
+                  <circle cx="40" cy="40" r="37" fill="none" stroke="rgba(99,155,255,0.15)" stroke-width="1.5"/>
+                  <!-- Cardinal labels -->
+                  <text x="40" y="9"  text-anchor="middle" fill="#475569" font-size="7" font-family="Inter">N</text>
+                  <text x="40" y="76" text-anchor="middle" fill="#475569" font-size="7" font-family="Inter">S</text>
+                  <text x="6"  y="43" text-anchor="middle" fill="#475569" font-size="7" font-family="Inter">W</text>
+                  <text x="74" y="43" text-anchor="middle" fill="#475569" font-size="7" font-family="Inter">E</text>
+                  <!-- Arrow (pointing direction wind is FROM) -->
+                  <g id="wind-arrow" transform="rotate(0 40 40)">
+                    <polygon points="40,14 35,50 40,45 45,50" fill="#22d3ee" opacity="0.9"/>
+                    <polygon points="40,66 35,30 40,35 45,30" fill="#475569" opacity="0.5"/>
+                  </g>
+                  <!-- Center dot -->
+                  <circle cx="40" cy="40" r="3" fill="#22d3ee"/>
+                </svg>
+              </div>
+              <div class="wind-stats">
+                <div>
+                  <span class="wind-speed-big" id="wind-speed">--</span>
+                  <span class="wind-unit">mph</span>
+                </div>
+                <div class="wind-detail">Direction: <strong id="wind-dir">--</strong></div>
+                <div class="wind-detail">Gust: <span class="wind-gust" id="wind-gust">--</span> mph</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sun Times -->
+        <div class="card" id="sun-card">
+          <div class="card-header">
+            <span class="card-title"><span class="icon">🌅</span> Daylight</span>
+            <div class="card-refresh">
+              <span class="refresh-dot ok" id="sun-dot"></span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="sun-track">
+              <div class="sun-track-fill" id="sun-fill" style="width:0%"></div>
+              <div class="sun-dot" id="sun-dot-el" style="left:0%"></div>
+            </div>
+            <div class="sun-times-row">
+              <div class="sun-time-item">
+                <span class="sun-time-label">🌅 Sunrise</span>
+                <span class="sun-time-value" id="sun-rise">--</span>
+              </div>
+              <div class="sun-time-item">
+                <span class="sun-time-label">Next</span>
+                <span class="sun-time-value" id="sun-next">--</span>
+                <span class="cond-label" id="sun-next-label">--</span>
+              </div>
+              <div class="sun-time-item">
+                <span class="sun-time-label">🌇 Sunset</span>
+                <span class="sun-time-value" id="sun-set">--</span>
+              </div>
+            </div>
+            <div class="sun-daylight" id="sun-daylight">-- hrs of daylight</div>
+          </div>
+        </div>
+
+      </div><!-- /conditions-row -->
+
+      <!-- Precipitation -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title"><span class="icon">🌧</span> Precipitation</span>
+          <div class="card-refresh">
+            <span class="refresh-dot" id="precip-dot"></span>
+            <span id="precip-updated">--</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="precip-grid">
+            <div class="precip-item">
+              <div class="precip-value" id="precip-1h">--</div>
+              <div class="precip-label">Last Hour</div>
+            </div>
+            <div class="precip-item">
+              <div class="precip-value" id="precip-24h">--</div>
+              <div class="precip-label">24 Hours</div>
+            </div>
+            <div class="precip-item">
+              <div class="precip-value" id="precip-7d">--</div>
+              <div class="precip-label">7 Days</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Air Quality -->
+      <div class="card" id="aqi-card">
+        <div class="card-header">
+          <span class="card-title"><span class="icon">💨</span> Air Quality</span>
+          <div class="card-refresh">
+            <span class="refresh-dot" id="aqi-dot"></span>
+            <span id="aqi-updated">--</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="aqi-display" id="aqi-display">
+            <div class="skeleton skeleton-text" style="width:70px;height:60px"></div>
+            <div class="skeleton skeleton-text"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lightning -->
+      <div class="card" id="lightning-card">
+        <div class="card-header">
+          <span class="card-title"><span class="icon">⚡</span> Lightning Strikes — Live</span>
+          <div style="display:flex;align-items:center;gap:0.5rem">
+            <span class="strike-count-badge" id="strike-count-badge" style="display:none"></span>
+            <div class="card-refresh">
+              <span class="refresh-dot" id="lightning-dot"></span>
+              <span id="lightning-updated">--</span>
+            </div>
+          </div>
+        </div>
+        <div class="card-body" style="padding:0;position:relative;">
+          <div id="lightning-map" style="height:260px;border-radius:0 0 var(--radius-md) var(--radius-md);background:#070b14;"></div>
+          <div class="lightning-legend">
+            <span class="legend-item"><span style="color:#fff700">●</span> &lt;5 min</span>
+            <span class="legend-item"><span style="color:#ff9500">●</span> &lt;15 min</span>
+            <span class="legend-item"><span style="color:#ff4444">●</span> &lt;30 min</span>
+            <span class="legend-item"><span style="color:#663333">●</span> &lt;60 min</span>
+          </div>
+          <div id="lightning-status" class="lightning-status">Connecting to Blitzortung…</div>
+        </div>
+      </div>
+
+      <!-- Snow (hidden until relevant) -->
+      <div class="card snow-card" id="snow-card" style="display:none">
+        <div class="card-header">
+          <span class="card-title"><span class="icon">❄</span> Snow Depth</span>
+        </div>
+        <div class="card-body" style="text-align:center;padding:1rem">
+          <span class="snow-depth-val" id="snow-depth">--</span>
+          <span class="snow-unit">inches</span>
+        </div>
+      </div>
+
+    </div><!-- /col-left -->
+
+
+    <!-- CENTER COLUMN ────────────────────────────────────────────────────── -->
+    <div id="col-center">
+
+      <!-- Hourly Forecast -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title"><span class="icon">⏱</span> Hourly Forecast</span>
+          <div class="card-refresh">
+            <span class="refresh-dot" id="hourly-dot"></span>
+            <span id="hourly-updated">--</span>
+          </div>
+        </div>
+        <div class="card-body" style="padding: 0.5rem 0.85rem 0.85rem">
+          <div class="hourly-scroll" id="hourly-list">
+            <!-- Skeleton loaders -->
+            <div class="hourly-item skeleton" style="min-width:58px;height:90px"></div>
+            <div class="hourly-item skeleton" style="min-width:58px;height:90px"></div>
+            <div class="hourly-item skeleton" style="min-width:58px;height:90px"></div>
+            <div class="hourly-item skeleton" style="min-width:58px;height:90px"></div>
+            <div class="hourly-item skeleton" style="min-width:58px;height:90px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Daily Forecast -->
+      <div class="card" style="flex:1">
+        <div class="card-header">
+          <span class="card-title"><span class="icon">📅</span> 7-Day Forecast</span>
+          <div class="card-refresh">
+            <span class="refresh-dot" id="daily-dot"></span>
+            <span id="daily-updated">--</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="daily-list" id="daily-list">
+            <div class="skeleton" style="height:36px;margin-bottom:4px"></div>
+            <div class="skeleton" style="height:36px;margin-bottom:4px"></div>
+            <div class="skeleton" style="height:36px;margin-bottom:4px"></div>
+            <div class="skeleton" style="height:36px;margin-bottom:4px"></div>
+            <div class="skeleton" style="height:36px;margin-bottom:4px"></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /col-center -->
+
+
+    <!-- RIGHT COLUMN ─────────────────────────────────────────────────────── -->
+    <div id="col-right">
+
+      <!-- River Levels -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title"><span class="icon">🌊</span> River Levels</span>
+          <div class="card-refresh">
+            <span class="refresh-dot" id="river-dot"></span>
+            <span id="river-updated">--</span>
+          </div>
+        </div>
+        <div class="card-body" id="river-body">
+          <div class="skeleton" style="height:60px;margin-bottom:8px"></div>
+          <div class="skeleton" style="height:60px;margin-bottom:8px"></div>
+        </div>
+      </div>
+
+      <!-- Tides -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title"><span class="icon">🌊</span> Tides — Olympia</span>
+          <div class="card-refresh">
+            <span class="refresh-dot" id="tides-dot"></span>
+            <span id="tides-updated">--</span>
+          </div>
+        </div>
+        <div class="card-body" id="tides-body">
+          <div class="skeleton" style="height:60px;margin-bottom:8px"></div>
+          <div class="skeleton" style="height:30px;margin-bottom:4px"></div>
+          <div class="skeleton" style="height:30px;margin-bottom:4px"></div>
+        </div>
+      </div>
+
+      <!-- Flood Warnings -->
+      <div class="card" id="flood-card" style="display:none">
+        <div class="card-header">
+          <span class="card-title" style="color:var(--orange)"><span class="icon">⚠️</span> Flood Warnings</span>
+        </div>
+        <div class="card-body" id="flood-body"></div>
+      </div>
+
+      <!-- Power Outages -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title"><span class="icon">⚡</span> Power Outages</span>
+          <span style="font-size:0.6rem;color:var(--text-muted)">WA State</span>
+        </div>
+        <div class="card-body" style="padding: 0.5rem">
+          <div class="power-embed-wrap">
+            <iframe
+              src="https://poweroutage.us/area/state/washington"
+              title="Washington State Power Outages"
+              loading="lazy"
+              sandbox="allow-scripts allow-same-origin"
+            ></iframe>
+          </div>
+          <p class="power-note">Data via PowerOutage.us — may take a moment to load</p>
+        </div>
+      </div>
+
+      <!-- Data Health -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title"><span class="icon">🩺</span> Data Sources</span>
+          <div class="card-refresh">
+            <span class="refresh-dot" id="health-dot"></span>
+            <span id="health-updated">--</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="health-grid" id="health-grid">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /col-right -->
+
+
+    <!-- BOTTOM ROW: Traffic Cameras ──────────────────────────────────────── -->
+    <div class="card" id="cam-row">
+      <div class="card-header">
+        <span class="card-title"><span class="icon">📷</span> WA DOT Traffic Cameras — Olympia Area</span>
+        <div class="card-refresh">
+          <span class="refresh-dot" id="cam-dot"></span>
+          <span id="cam-updated">--</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="cam-grid" id="cam-grid">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </div>
+
+  </main><!-- /main-grid -->
+</div><!-- /app -->
+
+<!-- ── Lightbox ─────────────────────────────────────────────────────────── -->
+<div id="lightbox" onclick="closeLightbox()">
+  <button id="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightbox-img" src="" alt="Camera view">
+  <div id="lightbox-caption"></div>
+</div>
+
+<!-- ── Alert Modal ──────────────────────────────────────────────────────── -->
+<div id="alert-modal" onclick="closeAlertModal(event)">
+  <div class="alert-modal-inner" onclick="event.stopPropagation()">
+    <div class="alert-modal-header">
+      <div class="alert-modal-title" id="modal-title"></div>
+      <button class="alert-modal-close" onclick="closeAlertModal()">✕</button>
+    </div>
+    <div class="alert-meta" id="modal-meta"></div>
+    <div class="alert-modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+  // Config injected from server
+  const APP_CONFIG = {
+    lat: {{ lat }},
+    lon: {{ lon }},
+    airnow_configured: {{ 'true' if airnow_configured else 'false' }},
+  };
+</script>
+<script src="/static/js/dashboard.js"></script>
+</body>
+</html>
