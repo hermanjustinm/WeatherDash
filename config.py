@@ -18,6 +18,7 @@ class Settings:
     power_outage_embed_url: str = os.getenv(
         "POWER_OUTAGE_EMBED_URL", "https://poweroutage.us/area/state/washington"
     )
+    cors_allowed_origins: str = os.getenv("CORS_ALLOWED_ORIGINS", "*")
 
 
 settings = Settings()

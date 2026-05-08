@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from flask import Flask, jsonify, render_template
+from flask_cors import CORS
 
 from config import settings
 from app.services.air_quality import AirQualityService
@@ -20,6 +21,8 @@ persist = PersistentStore()
 
 def create_app() -> Flask:
     app = Flask(__name__)
+    origins = [o.strip() for o in settings.cors_allowed_origins.split(",") if o.strip()]
+    CORS(app, resources={r"/api/*": {"origins": origins or ["*"]}})
 
     nws = NWSService(settings.latitude, settings.longitude)
     aqi = AirQualityService()

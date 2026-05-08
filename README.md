@@ -1,53 +1,51 @@
 # WeatherDash (Olympia, WA)
 
-Self-hosted Flask weather/infrastructure dashboard for Olympia, Washington.
+WeatherDash is a Flask backend + dashboard frontend for weather/infrastructure monitoring.
+
+## Important: GitHub Pages vs Flask
+GitHub Pages can only host **static files**. It cannot run Flask/Python.
+
+Use one of these patterns:
+1. **Recommended:** Host Flask on your server (Linux/Windows) and access `/` directly.
+2. **Optional split mode:** Host `static_site/` on GitHub Pages and point it to your running backend API by setting `window.WEATHERDASH_API_URL` in `static_site/index.html`.
 
 ## Features
-- Live radar (RainViewer embed) with 5-minute refresh.
-- NWS current conditions, hourly, and 7-day forecast.
-- NWS severe alerts for Thurston County.
-- Wind, AQI (AirNow), river levels (USGS), tides (NOAA), traffic cams (WADOT), source health checks.
-- Dark, responsive dashboard layout for desktop/mobile.
-- Cached backend responses to reduce rate limits.
-- Persistent fallback snapshot saved at `data/last_dashboard.json` for API outage/reboot resilience.
+- Live radar (RainViewer embed), severe alerts, hourly + 7-day forecast.
+- Infrastructure modules: AQI, river levels, tides, traffic cams, health indicators.
+- Graceful degradation with in-memory TTL caching + persisted snapshot fallback (`data/last_dashboard.json`).
+- CORS-configurable API for remote/browser-hosted clients.
 
-## Quick start (manual)
+## Linux quick start
 1. `python3 -m venv .venv && source .venv/bin/activate`
 2. `pip install -r requirements.txt`
-3. `cp .env.example .env` and optionally add `AIRNOW_API_KEY`.
+3. `cp .env.example .env`
 4. `python run.py`
-5. Open `http://<server-ip>:5000`
 
-## Auto-run after reboot (systemd)
-Use the provided install script to set up a dedicated service user and enable startup on boot:
+## Windows quick start
+### PowerShell
+```powershell
+./scripts/run_windows.ps1
+```
 
+### CMD
+```bat
+scripts\run_windows.bat
+```
+
+## Auto-run after reboot (Linux systemd)
 ```bash
 ./scripts/install_systemd.sh
 ```
 
-This will:
-- install app into `/opt/weatherdash` (override with `APP_DIR=/path`)
-- create service account `weatherdash` (override with `APP_USER=user`)
-- create/enable `weatherdash.service`
-- automatically restart on failure and reboot
+## GitHub Pages static viewer mode
+- Publish contents of `static_site/` to your Pages branch.
+- Edit this line in `static_site/index.html` to your backend URL:
+  - `window.WEATHERDASH_API_URL = "https://your-host-or-tunnel/api/dashboard";`
+- In backend `.env`, set `CORS_ALLOWED_ORIGINS` to your Pages domain(s), e.g.:
+  - `CORS_ALLOWED_ORIGINS=https://<user>.github.io,https://<org>.github.io`
 
-Useful commands:
-- `sudo systemctl status weatherdash`
-- `sudo journalctl -u weatherdash -f`
-- `sudo systemctl restart weatherdash`
-
-## Cloudflare Tunnel (optional)
-- Install `cloudflared` on your server.
-- Run: `cloudflared tunnel --url http://localhost:5000`
-- For persistent tunnel, create a named tunnel and DNS route per Cloudflare docs.
-
-## Project layout
-- `app/services/`: integrations by provider.
-- `app/static/`: CSS/JS frontend assets.
-- `app/templates/`: Jinja templates.
-- `config.py`: env-driven settings.
-- `deploy/weatherdash.service`: systemd unit template.
-- `scripts/install_systemd.sh`: one-command installation + autostart setup.
-
-## Notes
-- Some modules (lightning, snow depth, precipitation accumulation, flood-only filters) can be extended further depending on preferred data provider and local gauge mapping.
+## Environment
+Copy `.env.example` to `.env` and set:
+- `AIRNOW_API_KEY` (optional but needed for AQI values)
+- `CORS_ALLOWED_ORIGINS` (for remote/static clients)
+- location/zone values if you want a different city
