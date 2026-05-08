@@ -1,0 +1,11 @@
+:root{--bg:#0b1020;--card:#141b2d;--text:#d6e1ff;--muted:#8ba0c9;--accent:#5ea4ff;--ok:#21c17a;--warn:#f0b429;--bad:#ef4444}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Segoe UI,sans-serif;background:var(--bg);color:var(--text)}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:#0f172a;position:sticky;top:0;z-index:20}
+.grid{display:grid;grid-template-columns:2fr 1.2fr 1fr;gap:12px;padding:12px}.card{background:var(--card);border-radius:12px;padding:12px;box-shadow:0 0 0 1px #1f2a44}
+.radar iframe{width:100%;height:520px;border:0;border-radius:10px}.hscroll{display:flex;overflow:auto;gap:8px}.hour{min-width:110px;background:#1b2740;padding:8px;border-radius:8px}
+.daily{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}.day{background:#1b2740;padding:8px;border-radius:8px}
+.alert-banner{padding:10px 16px;background:#4a1d1d}.hidden{display:none}.cams-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px}
+.cam img{width:100%;border-radius:8px}.health-pill{display:inline-block;padding:2px 8px;border-radius:999px;margin:2px}
+.ok{background:#123d2a;color:#9ef4c9}.down{background:#4a1717;color:#ffb2b2}
+#power iframe{width:100%;height:220px;border:0;border-radius:8px;background:white}
+@media (max-width:1000px){.grid{grid-template-columns:1fr}.radar iframe{height:380px}}
