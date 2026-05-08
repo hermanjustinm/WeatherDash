@@ -9,13 +9,32 @@ Self-hosted Flask weather/infrastructure dashboard for Olympia, Washington.
 - Wind, AQI (AirNow), river levels (USGS), tides (NOAA), traffic cams (WADOT), source health checks.
 - Dark, responsive dashboard layout for desktop/mobile.
 - Cached backend responses to reduce rate limits.
+- Persistent fallback snapshot saved at `data/last_dashboard.json` for API outage/reboot resilience.
 
-## Setup
+## Quick start (manual)
 1. `python3 -m venv .venv && source .venv/bin/activate`
 2. `pip install -r requirements.txt`
 3. `cp .env.example .env` and optionally add `AIRNOW_API_KEY`.
 4. `python run.py`
 5. Open `http://<server-ip>:5000`
+
+## Auto-run after reboot (systemd)
+Use the provided install script to set up a dedicated service user and enable startup on boot:
+
+```bash
+./scripts/install_systemd.sh
+```
+
+This will:
+- install app into `/opt/weatherdash` (override with `APP_DIR=/path`)
+- create service account `weatherdash` (override with `APP_USER=user`)
+- create/enable `weatherdash.service`
+- automatically restart on failure and reboot
+
+Useful commands:
+- `sudo systemctl status weatherdash`
+- `sudo journalctl -u weatherdash -f`
+- `sudo systemctl restart weatherdash`
 
 ## Cloudflare Tunnel (optional)
 - Install `cloudflared` on your server.
@@ -27,6 +46,8 @@ Self-hosted Flask weather/infrastructure dashboard for Olympia, Washington.
 - `app/static/`: CSS/JS frontend assets.
 - `app/templates/`: Jinja templates.
 - `config.py`: env-driven settings.
+- `deploy/weatherdash.service`: systemd unit template.
+- `scripts/install_systemd.sh`: one-command installation + autostart setup.
 
 ## Notes
 - Some modules (lightning, snow depth, precipitation accumulation, flood-only filters) can be extended further depending on preferred data provider and local gauge mapping.

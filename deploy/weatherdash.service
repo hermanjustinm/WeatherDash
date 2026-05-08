@@ -1,0 +1,17 @@
+[Unit]
+Description=WeatherDash Flask Dashboard
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=weatherdash
+Group=weatherdash
+WorkingDirectory=/opt/weatherdash
+EnvironmentFile=/opt/weatherdash/.env
+ExecStart=/opt/weatherdash/.venv/bin/python run.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

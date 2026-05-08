@@ -11,9 +11,11 @@ from app.services.tides import NOAAService
 from app.services.wadot import WADOTService
 from app.services.weather import NWSService
 from app.utils.cache import TTLCacheStore
+from app.utils.persistence import PersistentStore
 
 
 cache = TTLCacheStore()
+persist = PersistentStore()
 
 
 def create_app() -> Flask:
@@ -58,6 +60,14 @@ def create_app() -> Flask:
             },
             "health": health,
         }
+        # Persist most recent successful payload for reboot/API outage resilience
+        if any(v.get("status") == "ok" for v in health.values()):
+            persist.save(data)
+        elif (stale := persist.load()) is not None:
+            stale.setdefault("meta", {})["stale"] = True
+            stale.setdefault("meta", {})["stale_reason"] = "all_sources_unavailable"
+            return jsonify(stale)
+
         return jsonify(data)
 
     return app
