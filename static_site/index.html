@@ -8,19 +8,32 @@
 </head>
 <body>
   <header class="topbar">
-    <div><h1>WeatherDash Remote Viewer</h1><small id="clock"></small></div>
-    <div id="summary"></div>
+    <div>
+      <h1>Olympia Weather + Infrastructure Dashboard</h1>
+      <small id="clock"></small>
+    </div>
+    <div id="summary" class="summary"></div>
   </header>
   <section id="alertBanner" class="alert-banner hidden"></section>
-  <main class="grid">
-    <section class="card radar"><h2>Live Radar</h2><iframe id="radarFrame" src="https://www.rainviewer.com/map.html?loc=47.0379,-122.9007,8&oFa=0&oC=1&oU=0&oCS=1&oF=0&c=1&o=83&lm=1&layer=radar"></iframe></section>
-    <section class="card forecast"><h2>Forecast</h2><div id="current"></div><h3>Hourly</h3><div id="hourly" class="hscroll"></div><h3>7-Day</h3><div id="daily" class="daily"></div></section>
-    <section class="card right"><h2>Alerts & Infra</h2><div id="alerts"></div><div id="aqi"></div><div id="wind"></div><div id="sun"></div><div id="river"></div><div id="tides"></div><div id="health"></div></section>
+
+  <main class="layout">
+    <section class="card radar-card">
+      <h2>Live Radar</h2>
+      <iframe id="radarFrame" src="https://www.rainviewer.com/map.html?loc=47.0379,-122.9007,8&oFa=0&oC=1&oU=0&oCS=1&oF=0&c=1&o=83&lm=1&layer=radar"></iframe>
+    </section>
+
+    <section class="card forecast-card">
+      <h2>Forecast</h2><div id="current" class="current"></div><h3>Hourly</h3><div id="hourly" class="hscroll"></div><h3>7-Day</h3><div id="daily" class="daily"></div>
+    </section>
+
+    <aside class="card rail-card">
+      <h2>Alerts & Infra</h2><div id="alerts"></div><div id="aqi"></div><div id="wind"></div><div id="sun"></div><div id="river"></div><div id="tides"></div><div id="health"></div>
+    </aside>
+
+    <section class="card cams-card"><h2>Traffic Cams (WADOT)</h2><div id="camsGrid" class="cams-grid"></div></section>
   </main>
-  <section class="card cams"><h2>Traffic Cams (WADOT)</h2><div id="camsGrid" class="cams-grid"></div></section>
-  <script>
-    window.WEATHERDASH_API_URL = "https://REPLACE-WITH-YOUR-BACKEND/api/dashboard";
-  </script>
+
+  <script>window.WEATHERDASH_API_URL = "https://REPLACE-WITH-YOUR-BACKEND/api/dashboard";</script>
   <script src="./app.js"></script>
 </body>
 </html>
