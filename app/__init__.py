@@ -1,0 +1,76 @@
+from __future__ import annotations
+
+from datetime import datetime, timezone
+
+from flask import Flask, jsonify, render_template
+from flask_cors import CORS
+
+from config import settings
+from app.services.air_quality import AirQualityService
+from app.services.hydrology import USGSService
+from app.services.tides import NOAAService
+from app.services.wadot import WADOTService
+from app.services.weather import NWSService
+from app.utils.cache import TTLCacheStore
+from app.utils.persistence import PersistentStore
+
+
+cache = TTLCacheStore()
+persist = PersistentStore()
+
+
+def create_app() -> Flask:
+    app = Flask(__name__)
+    origins = [o.strip() for o in settings.cors_allowed_origins.split(",") if o.strip()]
+    CORS(app, resources={r"/api/*": {"origins": origins or ["*"]}})
+
+    nws = NWSService(settings.latitude, settings.longitude)
+    aqi = AirQualityService()
+    usgs = USGSService()
+    noaa = NOAAService()
+    wadot = WADOTService()
+
+    @app.route("/")
+    def index():
+        return render_template("index.html", settings=settings)
+
+    @app.route("/api/dashboard")
+    def dashboard_data():
+        health = {}
+
+        def wrap(name: str, ttl: int, fn):
+            try:
+                res = cache.get_or_set(name, ttl, fn)
+                health[name] = {"status": "ok", "last_success": datetime.fromtimestamp(res.fetched_at, tz=timezone.utc).isoformat()}
+                return res.data
+            except Exception as exc:  # graceful degradation
+                health[name] = {"status": "down", "error": str(exc)}
+                return None
+
+        data = {
+            "forecast": wrap("forecast", 1800, nws.get_forecast),
+            "hourly": wrap("hourly", 1800, nws.get_hourly),
+            "observations": wrap("obs", 600, nws.get_observations_latest),
+            "alerts": wrap("alerts", 120, lambda: nws.get_alerts(settings.county_zone)),
+            "air_quality": wrap("aqi", 1800, lambda: aqi.get_current(settings.latitude, settings.longitude)),
+            "river_levels": wrap("river", 900, usgs.get_river_levels),
+            "tides": wrap("tides", 900, noaa.get_tides),
+            "traffic_cams": wrap("cams", 60, wadot.get_cameras),
+            "meta": {
+                "radar_refresh_seconds": 300,
+                "power_refresh_seconds": 300,
+                "health_refresh_seconds": 60,
+            },
+            "health": health,
+        }
+        # Persist most recent successful payload for reboot/API outage resilience
+        if any(v.get("status") == "ok" for v in health.values()):
+            persist.save(data)
+        elif (stale := persist.load()) is not None:
+            stale.setdefault("meta", {})["stale"] = True
+            stale.setdefault("meta", {})["stale_reason"] = "all_sources_unavailable"
+            return jsonify(stale)
+
+        return jsonify(data)
+
+    return app

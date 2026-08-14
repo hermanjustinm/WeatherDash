@@ -1,0 +1,48 @@
+:root{--bg:#070d1a;--panel:#0f1a33;--panel2:#142347;--text:#e8f0ff;--muted:#9bb0d8;--line:#20355f;--ok:#16a34a;--bad:#ef4444}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at top,#0a1530,#060b17 40%);color:var(--text);font-family:Inter,Segoe UI,Roboto,sans-serif}
+
+.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:14px 18px;border-bottom:1px solid var(--line);background:#09142d}
+.topbar h1{margin:0 0 6px;font-size:48px;line-height:1.1}
+.summary{font-size:16px;font-weight:700;white-space:nowrap;padding-top:6px}
+
+.alert-banner{margin:12px 18px 0;padding:10px 12px;border-radius:10px;background:#4b1f1f;border:1px solid #7d2e2e}
+.hidden{display:none}
+
+.layout{display:grid;grid-template-columns:minmax(320px,1.15fr) minmax(520px,2fr) minmax(300px,.95fr);gap:12px;padding:12px 18px 18px;grid-template-areas:"radar forecast rail" "cams cams rail"}
+.card{background:linear-gradient(180deg,var(--panel),#0d1934);border:1px solid var(--line);border-radius:14px;padding:12px}
+.card h2{margin:0 0 10px;font-size:18px;letter-spacing:.2px}
+.card h3{margin:12px 0 8px;font-size:16px}
+
+.radar-card{grid-area:radar}
+.forecast-card{grid-area:forecast}
+.rail-card{grid-area:rail;max-height:calc(100vh - 110px);overflow:auto}
+.cams-card{grid-area:cams}
+
+.radar-card iframe{width:100%;height:520px;border:0;border-radius:12px;background:#05090f}
+.current{font-size:38px;color:var(--muted);margin-bottom:8px}
+.hscroll{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px}
+.hour{min-width:128px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:18px;line-height:1.2}
+.hour b{font-size:20px}
+.daily{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.day{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:16px;line-height:1.25}
+.day b{font-size:22px}
+#alerts article{background:#17284f;border:1px solid var(--line);border-radius:10px;padding:8px;margin-bottom:8px}
+
+#power iframe{width:100%;height:220px;border:0;border-radius:10px;background:#fff}
+.cams-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.cam{background:#17284f;border:1px solid var(--line);border-radius:10px;padding:8px}
+.cam img{width:100%;border-radius:8px;display:block}
+.health-pill{display:inline-block;padding:2px 8px;border-radius:999px;margin-right:6px}
+.ok{background:#0f3a22}.down{background:#4a1717}
+
+@media (max-width:1450px){
+  .layout{grid-template-columns:1.1fr 1.7fr;grid-template-areas:"radar forecast" "rail rail" "cams cams"}
+  .rail-card{max-height:none}
+}
+@media (max-width:980px){
+  .topbar h1{font-size:28px}.summary{font-size:18px}
+  .layout{grid-template-columns:1fr;grid-template-areas:"radar" "forecast" "rail" "cams";padding:12px}
+  .radar-card iframe{height:380px}
+  .current{font-size:28px}
+}
